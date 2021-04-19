@@ -2,6 +2,7 @@ from sklearn.tree import DecisionTreeClassifier
 import numpy as np
 from EnsembleBase import Ensemble
 
+
 #Bootstrap Aggregation Model
 class BaggingModel(Ensemble):
 
@@ -48,13 +49,29 @@ class BaggingModel(Ensemble):
         print(f'Correct Predict {correct_predict}, Wrong Predict {wrong_predict}')
         calculated_accuray = (correct_predict / len(testdata)) * 100
         print(f'Accuracy is {calculated_accuray}')
+        return calculated_accuray
+
+def bagging_test_model(dataset,k_run=1):
+    train_dataset_percentage = 0.7
+    train_dataset_size = round(len(dataset) * train_dataset_percentage)
+
+    accuracies = []
+
+    for i in range(0,k_run):
+        shuffled_dataset = np.copy(dataset)
+        np.random.shuffle(shuffled_dataset)
+        train_dataset = shuffled_dataset[0:train_dataset_size]
+        test_dataset = shuffled_dataset[train_dataset_size:len(shuffled_dataset)]
+        model = BaggingModel()
+        model.train(train_dataset)
+        calculated_accuracy = model.accuracy(test_dataset)
+        accuracies.append(calculated_accuracy)
+
+    std = np.std(accuracies)
+    print(f'Standard Deviation of {k_run} Run is {std}')
 
 
 if __name__ == '__main__':
-    print('Testing Bagging Model With Glass Dataset')
+    print('Testing Bagging Model With Wine Dataset')
     dataset = np.genfromtxt('Datasets/Wine.txt',delimiter=',')
-    model = BaggingModel()
-    model.train(dataset)
-    testdataset = dataset[:,:-1]
-    model.accuracy(dataset)
-
+    bagging_test_model(dataset,10)
