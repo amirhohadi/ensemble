@@ -7,5 +7,5 @@ class Ensemble(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def classification(x):
+    def classification(self,x):
         pass
