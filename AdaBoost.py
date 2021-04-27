@@ -30,14 +30,14 @@ class AdaBoostModel(Ensemble):
                 Lk.append(l_output)
                 calculated_error += weights[index] * l_output
 
-            print(f'Error of {classifier_index} is {calculated_error}')
+            #print(f'Error of {classifier_index} is {calculated_error}')
 
             if calculated_error == 0 or calculated_error >= 0.5:
                 continue
 
             beta_k = calculated_error / (1 - calculated_error)
 
-            print(f'Beta(k) is {beta_k}')
+            #print(f'Beta(k) is {beta_k}')
 
             self.hypothesises.append(model)
             self.beta_t.append(beta_k)
@@ -62,21 +62,58 @@ class AdaBoostModel(Ensemble):
         bt = np.array(self.beta_t)
 
         for label in set(outputs):
-            model_predicts_this_label = map(lambda x : 1 if x == label else 0,outputs)
-            model_predicts_this_label = np.array(model_predicts_this_label)
-            mu = sum(model_predicts_this_label * bt)
+            model_predicts_this_label = list(map(lambda x : 1 if x == label else 0,outputs))
+
+            temp = model_predicts_this_label * bt
+            temp = [x for x in temp if x != 0]
+            temp = list(map(lambda x : math.log(1 / x),temp))
+            mu = sum(temp)
             mu_s[label] = mu
 
         best_mu = max(mu_s,key=mu_s.get)
-        print(f'{best_mu} is selected with Mu {mu_s[best_mu]}')
+        #print(f'{best_mu} is selected with Mu {mu_s[best_mu]}')
         return best_mu
 
+    def accuracy(self,testdata):
+        correct_predict = 0
+        wrong_predict = 0
+        for index in range(0,len(testdata)):
+            yhat = self.classification(testdata[index,:-1])
+            y = testdata[index,-1]
+            if yhat == y :
+                correct_predict += 1
+            else :
+                wrong_predict += 1
+        print(f'Correct Predict {correct_predict} and Wrong Predict {wrong_predict}')
+        calculated_accuracy = (correct_predict / len(testdata)) * 100
+        print(f'Accuracy is {calculated_accuracy}')
+        return calculated_accuracy
+
+def adaboost_test_model(dataset,max_depth,k_run=1):
+    train_dataset_percentage = 0.7
+    train_dataset_size = round(len(dataset) * train_dataset_percentage)
+
+    accuracies = []
+
+    for i in range(0,k_run):
+        shuffled_dataset = np.copy(dataset)
+        np.random.shuffle(shuffled_dataset)
+
+        train_dataset = shuffled_dataset[0:train_dataset_size]
+        test_dataset = shuffled_dataset[train_dataset_size:len(dataset)]
+
+        model = AdaBoostModel(max_depth=max_depth)
+
+        model.train(train_dataset)
+        calculated_accuracy = model.accuracy(test_dataset)
+        accuracies.append(calculated_accuracy)
+
+    std = np.std(accuracies)
+    print(f'Standard Deviation of {k_run} is {std}')
 
 
 if __name__ == '__main__':
     print('Testing Model With Diabetes Dataset')
     dataset = np.genfromtxt('Datasets/Diabetes.txt',delimiter='\t')
     dataset = dataset[:,:-1]
-    print('Initializing Model and Training...')
-    model = AdaBoostModel(3)
-    model.train(dataset)
+    adaboost_test_model(dataset,2,10)
