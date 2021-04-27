@@ -4,50 +4,60 @@ from EnsembleBase import Ensemble
 
 class AdaBoostModel(Ensemble):
 
-    def __init(self,max_depth,classifier_counts=10):
+    def __init__(self,max_depth,classifier_counts=10):
         self.classifier_counts = classifier_counts
         self.max_depth = max_depth
 
     def train(self,traindataset):
-        self.hypothesises = []
-        self.alpha_t = []
+        self.hypothesis = []
+        self.beta_t = []
 
         weights = np.repeat(1 / len(traindataset) , len(traindataset))  # Initializing W1 with 1/m
 
-        for i in range(0,self.classifier_counts):
-            model = DecisionTreeClassifier(max_depth=self.max_depth)    # Classifier Model D(k)
+        for classifier_index in range(0,self.classifier_counts):
+            model = DecisionTreeClassifier(max_depth=self.max_depth)
             x = traindataset[:,:-1]
             y = traindataset[:,-1]
             model.fit(x,y,sample_weight=weights)    # Train Weak Classifier
 
-            baseclassifier_classification_outputs = model.predict(x)  # Get Outputs of Model for Training DataSet
-            # Calculate Error E(k)
-            e_k = 0
-            Ls = []
-            for index,output in enumerate(baseclassifier_classification_outputs):
-                L_output = 1 if output != y[index] else 0
-                Ls.append(L_output)
-                e_k += weights[index] * L_output
+            base_classifier_output = model.predict(x)
 
-            if e_k == 0 or e_k >= 0.5 :
-                weights = np.repeat(1 / len(traindataset) , len(traindataset))
+            calculated_error = 0
+            Lk = []
+            for index,output in enumerate(base_classifier_output):
+                l_output = 1 if output != y[index] else 0
+                Lk.append(l_output)
+                calculated_error += weights[index] * l_output
+
+            print(f'Error of {classifier_index} is {calculated_error}')
+
+            if calculated_error == 0 or calculated_error >= 0.5:
                 continue
 
-            alpha_k = e_k / (1 - e_k)
-            self.alpha_t.append(alpha_k)
-            self.hypothesises.append(model)
+            beta_k = calculated_error / (1 - calculated_error)
 
-            #Update Weights W(k+1)
-            sigma = 0
+            print(f'Beta(k) is {beta_k}')
+
+            self.hypothesis.append(model)
+            self.beta_t.append(beta_k)
+
+            #Updating Weights(W(k+1,j))
+            
+            sigma = 0   # Makhraj Kasr
             for i in range(0,len(traindataset)):
-                sigma += weights[i] * (alpha_k ** (1 - Ls[i]))
+                sigma += weights[i] * (beta_k ** (1 - Lk[i]))
 
-            for j in range(0,len(traindataset)):
-                weights[j] = (weights[j] * (alpha_k ** (1 - Ls[j]))) / sigma
+            for i in range(0,len(traindataset)):
+                weights[i] = (weights[i] * (beta_k ** (1 - Lk[i]))) / sigma
 
     def classification(self,x):
         pass
 
 
 if __name__ == '__main__':
-    pass
+    print('Testing Model With Diabetes Dataset')
+    dataset = np.genfromtxt('Datasets/Diabetes.txt',delimiter='\t')
+    dataset = dataset[:,:-1]
+    print('Initializing Model and Training...')
+    model = AdaBoostModel(3)
+    model.train(dataset)
