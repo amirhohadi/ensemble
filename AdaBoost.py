@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from EnsembleBase import Ensemble
+import math
 
 class AdaBoostModel(Ensemble):
 
@@ -9,7 +10,7 @@ class AdaBoostModel(Ensemble):
         self.max_depth = max_depth
 
     def train(self,traindataset):
-        self.hypothesis = []
+        self.hypothesises = []
         self.beta_t = []
 
         weights = np.repeat(1 / len(traindataset) , len(traindataset))  # Initializing W1 with 1/m
@@ -38,11 +39,11 @@ class AdaBoostModel(Ensemble):
 
             print(f'Beta(k) is {beta_k}')
 
-            self.hypothesis.append(model)
+            self.hypothesises.append(model)
             self.beta_t.append(beta_k)
 
             #Updating Weights(W(k+1,j))
-            
+
             sigma = 0   # Makhraj Kasr
             for i in range(0,len(traindataset)):
                 sigma += weights[i] * (beta_k ** (1 - Lk[i]))
@@ -51,7 +52,25 @@ class AdaBoostModel(Ensemble):
                 weights[i] = (weights[i] * (beta_k ** (1 - Lk[i]))) / sigma
 
     def classification(self,x):
-        pass
+        outputs = []
+        x = x.reshape((1,-1))
+        for hypothesis in self.hypothesises:
+            out = hypothesis.predict(x)
+            outputs.append(out[0])
+
+        mu_s = {}
+        bt = np.array(self.beta_t)
+
+        for label in set(outputs):
+            model_predicts_this_label = map(lambda x : 1 if x == label else 0,outputs)
+            model_predicts_this_label = np.array(model_predicts_this_label)
+            mu = sum(model_predicts_this_label * bt)
+            mu_s[label] = mu
+
+        best_mu = max(mu_s,key=mu_s.get)
+        print(f'{best_mu} is selected with Mu {mu_s[best_mu]}')
+        return best_mu
+
 
 
 if __name__ == '__main__':
