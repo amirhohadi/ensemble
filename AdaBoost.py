@@ -3,6 +3,7 @@ from sklearn.tree import DecisionTreeClassifier
 from EnsembleBase import Ensemble
 import math
 
+
 class AdaBoostModel(Ensemble):
 
     def __init__(self,max_depth,classifier_counts=10):
@@ -14,8 +15,8 @@ class AdaBoostModel(Ensemble):
         self.beta_t = []
 
         weights = np.repeat(1 / len(traindataset) , len(traindataset))  # Initializing W1 with 1/m
-
-        for classifier_index in range(0,self.classifier_counts):
+        count = 0
+        while count < self.classifier_counts :
             model = DecisionTreeClassifier(max_depth=self.max_depth)
             x = traindataset[:,:-1]
             y = traindataset[:,-1]
@@ -33,7 +34,10 @@ class AdaBoostModel(Ensemble):
             #print(f'Error of {classifier_index} is {calculated_error}')
 
             if calculated_error == 0 or calculated_error >= 0.5:
+                weights = np.repeat(1 / len(traindataset) , len(traindataset))  # Initializing W1 with 1/m
                 continue
+
+            count += 1
 
             beta_k = calculated_error / (1 - calculated_error)
 
@@ -84,12 +88,31 @@ class AdaBoostModel(Ensemble):
                 correct_predict += 1
             else :
                 wrong_predict += 1
-        print(f'Correct Predict {correct_predict} and Wrong Predict {wrong_predict}')
+        #print(f'Correct Predict {correct_predict} and Wrong Predict {wrong_predict}')
         calculated_accuracy = (correct_predict / len(testdata)) * 100
-        print(f'Accuracy is {calculated_accuracy}')
+        #print(f'Accuracy is {calculated_accuracy}')
         return calculated_accuracy
 
-def adaboost_test_model(dataset,max_depth,k_run=1):
+
+def add_noise(dataset,percent):
+    column_count = dataset.shape[1] - 1
+    column_noise_count = round(column_count * percent)
+
+    selected_columns = []
+    count = 0
+
+    while count < column_noise_count :
+        random_column = np.random.randint(0,column_count)
+        if random_column in selected_columns :
+            continue
+        selected_columns.append(random_column)
+        gaussain_noise = np.random.normal(size=len(dataset[:,random_column]))
+        dataset[:,random_column] += gaussain_noise
+        count += 1
+    return dataset
+
+
+def adaboost_test_model(dataset,max_depth,k_run=1,noise_percent=0):
     train_dataset_percentage = 0.7
     train_dataset_size = round(len(dataset) * train_dataset_percentage)
 
@@ -102,14 +125,18 @@ def adaboost_test_model(dataset,max_depth,k_run=1):
         train_dataset = shuffled_dataset[0:train_dataset_size]
         test_dataset = shuffled_dataset[train_dataset_size:len(dataset)]
 
+        if noise_percent > 0 :
+            train_dataset = add_noise(train_dataset,noise_percent)
+
         model = AdaBoostModel(max_depth=max_depth)
 
         model.train(train_dataset)
         calculated_accuracy = model.accuracy(test_dataset)
         accuracies.append(calculated_accuracy)
 
+    mean = np.median(accuracies)
     std = np.std(accuracies)
-    print(f'Standard Deviation of {k_run} is {std}')
+    print(f'Median/Standard Deviation of {k_run} run  is {mean}/ {std}')
 
 
 if __name__ == '__main__':

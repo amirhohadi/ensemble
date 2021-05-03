@@ -3,7 +3,7 @@ import numpy as np
 from EnsembleBase import Ensemble
 
 
-#Bootstrap Aggregation Model
+# Bootstrap Aggregation Model
 class BaggingModel(Ensemble):
 
     def __init__(self,classifier_counts=10):
@@ -46,12 +46,30 @@ class BaggingModel(Ensemble):
                 correct_predict += 1
             else:
                 wrong_predict += 1
-        print(f'Correct Predict {correct_predict}, Wrong Predict {wrong_predict}')
+        #print(f'Correct Predict {correct_predict}, Wrong Predict {wrong_predict}')
         calculated_accuray = (correct_predict / len(testdata)) * 100
-        print(f'Accuracy is {calculated_accuray}')
+        #print(f'Accuracy is {calculated_accuray}')
         return calculated_accuray
 
-def bagging_test_model(dataset,k_run=1):
+def add_noise(dataset,percent):
+    column_count = dataset.shape[1] - 1
+    column_noise_count = round(column_count * percent)
+
+    selected_columns = []
+    count = 0
+
+    while count < column_noise_count :
+        random_column = np.random.randint(0,column_count)
+        if random_column in selected_columns :
+            continue
+        selected_columns.append(random_column)
+        gaussain_noise = np.random.normal(size=len(dataset[:,random_column]))
+        dataset[:,random_column] += gaussain_noise
+        count += 1
+    return dataset
+
+
+def bagging_test_model(dataset,k_run=1,noise_percent=0):
     train_dataset_percentage = 0.7
     train_dataset_size = round(len(dataset) * train_dataset_percentage)
 
@@ -63,12 +81,17 @@ def bagging_test_model(dataset,k_run=1):
         train_dataset = shuffled_dataset[0:train_dataset_size]
         test_dataset = shuffled_dataset[train_dataset_size:len(shuffled_dataset)]
         model = BaggingModel()
+
+        if noise_percent > 0 :
+            train_dataset = add_noise(train_dataset,noise_percent)
+
         model.train(train_dataset)
         calculated_accuracy = model.accuracy(test_dataset)
         accuracies.append(calculated_accuracy)
 
+    mean = np.median(accuracies)
     std = np.std(accuracies)
-    print(f'Standard Deviation of {k_run} Run is {std}')
+    print(f'Mean/Standard Deviation of {k_run} Run is {mean}/{std}')
 
 
 if __name__ == '__main__':
