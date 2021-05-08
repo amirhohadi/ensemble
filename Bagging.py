@@ -89,7 +89,7 @@ def bagging_test_model(dataset,k_run=1,noise_percent=0):
         calculated_accuracy = model.accuracy(test_dataset)
         accuracies.append(calculated_accuracy)
 
-    mean = np.median(accuracies)
+    mean = np.mean(accuracies)
     std = np.std(accuracies)
     print(f'Mean/Standard Deviation of {k_run} Run is {mean}/{std}')
 

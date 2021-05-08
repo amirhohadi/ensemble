@@ -134,7 +134,7 @@ def adaboost_test_model(dataset,max_depth,k_run=1,noise_percent=0):
         calculated_accuracy = model.accuracy(test_dataset)
         accuracies.append(calculated_accuracy)
 
-    mean = np.median(accuracies)
+    mean = np.mean(accuracies)
     std = np.std(accuracies)
     print(f'Median/Standard Deviation of {k_run} run  is {mean}/ {std}')
 
